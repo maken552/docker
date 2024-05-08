@@ -1,0 +1,68 @@
+version: "3.7"
+services:
+  laravel-trade:
+    image: laravel:latest
+    build:
+      context: ./backend
+      dockerfile: ./Dockerfile
+    container_name: laravel-trade
+    expose:
+      - 9000
+    volumes:
+      - ./backend/laravel-back/:/var/www/api.trading.net
+    networks:
+      - trade
+    depends_on:
+      - mysql-trade
+      - phpmyadmin
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+        - ./.config/nginx/server:/etc/nginx/conf.d
+        - ./backend/laravel-back/:/var/www/api.trading.net
+        - ./.config/nginx/logs/:/var/log/nginx
+    depends_on:
+      - laravel-trade
+    networks:
+      - trade
+
+  #PHPMYADMIN
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin-admin.trade.net
+    restart: always
+    environment:
+      - PMA_HOST=${PMA_HOST}
+    ports:
+      - "8080:80"
+    depends_on:
+      - mysql-trade
+    networks:
+      - trade
+
+  mysql-trade:
+      restart: always
+      container_name: mysql-trade
+      image: mysql:8.1
+      ports:
+          - "3306:3306"
+      volumes:
+          - ./.config/server/data/mysql:/var/lib/mysql
+      environment:
+          MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+          MYSQL_DATABASE: ${MYSQL_DATABASE}
+          MYSQL_USER: ${MYSQL_USER}
+          MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      networks:
+          - trade
+
+networks:
+  trade:
+    driver: bridge
+    name: trade
